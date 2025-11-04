@@ -34,7 +34,7 @@ def send_whatsapp_message(to_number: str, text: str):
 def call_gemini_api(text: str):
     """Sends text to Gemini and gets structured JSON back."""
     genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
-    model = genai.GenerativeModel('gemini-1.5-flash',
+    model = genai.GenerativeModel('gemini-2.5-flash',
                                   generation_config={"response_mime_type": "application/json"})
     
     prompt = f"""
