@@ -3,7 +3,7 @@ import json
 import requests
 import google.generativeai as genai
 from notion_client import Client
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -37,18 +37,55 @@ def call_gemini_api(text: str):
     model = genai.GenerativeModel('gemini-2.5-flash',
                                   generation_config={"response_mime_type": "application/json"})
     
+    ist_tz = timezone(timedelta(hours=5, minutes=30))
+    current_time_ist = datetime.now(ist_tz)
+    today_date_str = current_time_ist.strftime("%Y-%m-%d %H:%M:%S %Z") # e.g., "2025-11-05 10:00:00 IST"
+
     prompt = f"""
-    You are an event parsing assistant. Analyze the following text and extract 
-    the event title, deadline (as an ISO 8601 UTC string), and priority.
+    You are an expert event parser. Your task is to extract a 'title', 'deadline_utc', and 'priority' from the user's text.
+    You MUST respond ONLY with a JSON object.
 
-    Priority must be "high", "medium", or "low". Default to "medium".
-    Assume the current year is {datetime.now().year}.
-    If no specific time is mentioned, default to 5:00 PM in the user's timezone.
-    For deadlines like "tomorrow", calculate the date based on today: {datetime.now().isoformat()}
+    **Current Time:**
+    Today's date and time is: {today_date_str}
+    This time is in **India Standard Time (IST, UTC+5:30)**.
 
-    Respond ONLY with a JSON object.
+    **Rules for Extraction:**
+    1.  **title**: Extract the core event or task. Do NOT include the date, time, or priority words in the title.
+    2.  **deadline_utc**:
+        * All relative dates (like "tomorrow") and times (like "at 2pm") in the user's text are relative to the **Current Time** (which is in IST).
+        * If no specific time is mentioned (e.g., "by November 22"), default the time to 5:00 PM (17:00) in **India Standard Time (IST)**.
+        * After calculating the final date and time in IST, you MUST convert it to a full ISO 8601 UTC string (e.g., "YYYY-MM-DDTHH:MM:SSZ") for the final JSON output.
+        * If no date or time can be found, this value MUST be `null`.
+    3.  **priority**: Must be "high", "medium", or "low". If not mentioned, default to "medium".
 
-    Text: "{text}"
+    **Examples:**
+    1.  User Text: "DSA assignment submission deadline, November 22. high priority"
+        (Assuming current time is 2025-11-04 10:00:00 IST)
+        {{
+          "title": "DSA assignment submission",
+          "deadline_utc": "2025-11-22T11:30:00Z",
+          "priority": "high"
+        }}
+        (Calculation: "November 22" defaults to 17:00 IST -> 2025-11-22 17:00:00 IST -> 2025-11-22T11:30:00Z)
+
+    2.  User Text: "Need to finish the project report by tomorrow at 2pm"
+        (Assuming current time is 2025-11-04 10:00:00 IST)
+        {{
+          "title": "Finish the project report",
+          "deadline_utc": "2025-11-05T08:30:00Z",
+          "priority": "medium"
+        }}
+        (Calculation: "tomorrow" is 2025-11-05. "2pm" is 14:00 IST -> 2025-11-05 14:00:00 IST -> 2025-11-05T08:30:00Z)
+        
+    3.  User Text: "Buy groceries"
+        {{
+          "title": "Buy groceries",
+          "deadline_utc": null,
+          "priority": "medium"
+        }}
+
+    **User Text to Parse:**
+    "{text}"
     """
     try:
         response = model.generate_content(prompt)
