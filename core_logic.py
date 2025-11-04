@@ -4,7 +4,7 @@ import requests
 import google.generativeai as genai
 from notion_client import Client
 from datetime import datetime, timedelta
-
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
@@ -97,7 +97,7 @@ def get_google_service_from_token(refresh_token: str):
             scopes=['https://www.googleapis.com/auth/calendar.events']
         )
         
-        creds.refresh(requests.Request())
+        creds.refresh(Request())
         
         service = build('calendar', 'v3', credentials=creds)
         return service
