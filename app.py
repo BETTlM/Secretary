@@ -110,8 +110,12 @@ def logout():
 def auth_google():
     """Redirects user to Google for Supabase login."""
     redirect_url = supabase.auth.sign_in_with_oauth(
-        "google",
-        redirect_to=url_for("auth_callback", _external=True)
+        {
+            "provider": "google",
+            "options": {
+                "redirect_to": url_for("auth_callback", _external=True)
+            }
+        }
     )
     return redirect(redirect_url.url)
 
