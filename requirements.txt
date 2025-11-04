@@ -1,0 +1,14 @@
+# --- Server ---
+flask
+gunicorn
+
+# --- API Clients ---
+requests
+google-generativeai
+notion-client
+google-api-python-client
+google-auth-oauthlib
+supabase
+
+# --- Utilities ---
+python-dotenv

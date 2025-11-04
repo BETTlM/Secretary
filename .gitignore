@@ -1,0 +1,10 @@
+# --- Python ---
+*.pyc
+__pycache__/
+venv/
+*.venv/
+
+# --- Secrets (NEVER upload these) ---
+.env
+credentials.json
+token.json
