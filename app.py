@@ -206,7 +206,7 @@ def google_auth_callback_calendar():
         
     flow = Flow.from_client_secrets_file(
         GOOGLE_CREDS_FILE,
-        scopes=['https.googleapis.com/auth/calendar.events'],
+        scopes=['https://www.googleapis.com/auth/calendar.events'],
         state=session['google_oauth_state'],
         redirect_uri=url_for('google_auth_callback_calendar', _external=True)
     )
