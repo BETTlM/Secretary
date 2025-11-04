@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="card">
+        <h1>Your Dashboard</h1>
+        <p>Welcome, {{ user_email }}!</p>
+        
+        <h3>Integrations</h3>
+        
+        {% if has_calendar_token %}
+            <p class="success">✅ Google Calendar is connected.</p>
+        {% else %}
+            <a href="/connect-google-calendar" class="btn google-btn">Connect Google Calendar</a>
+        {% endif %}
+        
+        <form action="/save-notion" method="POST">
+            <h4>Notion Settings</h4>
+            <input type="text" name="notion_key" placeholder="Notion API Key" value="{{ notion_key }}">
+            <input type="text" name="notion_db_id" placeholder="Notion Database ID" value="{{ notion_db_id }}">
+            <button type="submit" class="btn">Save Notion</button>
+        </form>
+
+        <a href="/logout" class="logout-link">Logout</a>
+    </div>
+</body>
+</html>

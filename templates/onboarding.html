@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Onboarding</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="card">
+        <h1>One Last Step</h1>
+        <p>Please enter your WhatsApp phone number to link your account.
+           (Include country code, e.g., 919087730234)</p>
+        <form action="/save-phone" method="POST">
+            <input type="tel" name="phone" placeholder="e.g. 919087730234" required>
+            <button type="submit" class="btn">Save Phone Number</button>
+        </form>
+    </div>
+</body>
+</html>
