@@ -1,4 +1,3 @@
-# supabase_helpers.py
 import os
 from supabase import create_client, Client
 from gotrue.types import User
