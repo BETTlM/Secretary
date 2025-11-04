@@ -12,4 +12,3 @@ supabase
 
 # --- Utilities ---
 python-dotenv
-gotrue
