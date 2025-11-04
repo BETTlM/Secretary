@@ -53,14 +53,20 @@ def webhook():
                 if not user_profile:
                     send_whatsapp_message(from_number, "Hi! I don't recognize your number. Please sign up at https://bettims-donna.onrender.com to use this service.")
                     return "OK", 200
-
-                event_data = call_gemini_api(message_body)
-                if not event_data:
-                    send_whatsapp_message(from_number, "Sorry, I couldn't understand that. Please try again.")
-                    return "OK", 200
                 
+                event_data = call_gemini_api(message_body)
+
+                if not event_data:
+                    send_whatsapp_message(from_number, "Sorry, I had a problem understanding that. Please try again.")
+                    return "OK", 200
+
                 title = event_data.get('title')
-                deadline = event_data.get('deadline_utc')
+                deadline = event_data.get('deadline_utc') # This might be None
+
+                if not title or not deadline:
+                    send_whatsapp_message(from_number, "Sorry, I understood the event but couldn't find a clear title or deadline. Please try again.")
+                    return "OK", 200
+
                 priority = event_data.get('priority', 'medium')
                 
                 if user_profile.get('sync_notion'):
