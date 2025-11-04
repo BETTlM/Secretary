@@ -3,7 +3,6 @@ import os
 from flask import Flask, request, abort, render_template, redirect, session, url_for
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
-from gotrue.errors import APIError
 
 # Import our helper files
 from core_logic import (
@@ -131,7 +130,7 @@ def auth_callback():
         create_profile_if_not_exists(user)
         
         return redirect(url_for('home'))
-    except (APIError, Exception) as e:
+    except Exception as e:
         print(f"Auth callback error: {e}")
         return redirect(url_for('login'))
 
