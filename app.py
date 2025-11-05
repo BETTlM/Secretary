@@ -65,8 +65,9 @@ def webhook():
                     return "OK", 200
 
                 title = event_data.get('title')
-                deadline_str = event_data.get('deadline_utc') + timedelta(hours=5, minutes=30)
-                
+
+                deadline_str = event_data.get('deadline_utc')
+
                 if not title or not deadline_str:
                     send_whatsapp_message(from_number, "Sorry, I understood the event but couldn't find a clear title or deadline. Please try again.")
                     return "OK", 200
@@ -77,6 +78,10 @@ def webhook():
 
                 try:
                     deadline_utc = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
+
+                    ist_offset = timedelta(hours=5, minutes=30)
+                    deadline_ist = deadline_utc + ist_offset
+
                     reminder_time_utc = deadline_utc - timedelta(hours=1)
                     now_utc = datetime.now(timezone.utc)
                     if reminder_time_utc > now_utc:
@@ -93,25 +98,32 @@ def webhook():
                         reminder_message = "The 1-hour reminder time for this event is already in the past, so a reminder won't be sent."
                 except Exception as e:
                     print(f"Error parsing deadline or scheduling: {e}")
-                    reminder_message = "Sorry, I couldn't parse the deadline to schedule a reminder."                
+                    reminder_message = "Sorry, I couldn't parse the deadline to schedule a reminder."
+
                 if (user_profile.get('sync_notion') and 
                     user_profile.get('notion_api_key') and 
                     user_profile.get('notion_database_id')):
                     create_notion_page(user_profile['notion_api_key'], user_profile['notion_database_id'], title, deadline_str, priority)
+
                 if (user_profile.get('sync_calendar') and 
                     user_profile.get('google_refresh_token')):
                     service = get_google_service_from_token(user_profile['google_refresh_token'])
                     if service:
                         create_google_calendar_event(service, title, deadline_str)
+
+                deadline_ist_str = deadline_ist.strftime('%Y-%m-%d %H:%M')
+
                 reply_message = (
                     f"✅ *Event Synced!*\n\n"
                     f"*Event:* {title}\n"
-                    f"*Deadline:* {deadline_str[:-10:]}\n"
+                    f"*Deadline (IST):* {deadline_ist_str}\n"
                     f"*Priority:* {priority.capitalize()}\n\n"
-                    f"I'll send you a reminder 1 hour before it's due."
+                    f"{reminder_message}"
                 )
                 send_whatsapp_message(from_number, reply_message)
-                
+
+
+
         except Exception as e:
             print(f"Error processing message: {e}")
         
