@@ -1,4 +1,5 @@
 import os
+import json  # Import json for parsing metadata
 from flask import (
     Flask, request, abort, render_template, 
     redirect, session, url_for, flash
@@ -181,6 +182,17 @@ def handle_register():
         flash(f"Sign up failed: {error}", "error")
         return redirect(url_for('register_page'))
     elif response.user:
+        
+        # --- FIX #1: Ensure profile is created for email sign-ups ---
+        # This ensures that email/pass users also get a profile
+        # in your 'profiles' table, just like OAuth users.
+        try:
+            create_profile_if_not_exists(response.user)
+        except Exception as e:
+            print(f"Error creating profile for new email user: {e}")
+            # Don't block registration, but log the error
+        # --- END OF FIX #1 ---
+
         flash("Registration successful! Please check your email to verify.", "info")
         return redirect(url_for('login_page'))
         
@@ -230,22 +242,32 @@ def auth_callback():
     """Handles the callback from Supabase (Google) Auth."""
     try:
         auth_code = request.args.get("code")
-
-        # --- THIS IS THE OLD, BUGGY CODE ---
-        # session_data = supabase.auth.exchange_code_for_session(auth_code)
-        # user = session_data.user
-        # session['user'] = user.dict()
-
-        # --- THIS IS THE NEW, CORRECTED CODE ---
-        # exchange_code_for_session() automatically sets the user session
-        # in the client. We just need to get the user.
+        
         supabase.auth.exchange_code_for_session(auth_code)
         user_response = supabase.auth.get_user()
         user = user_response.user
-        session['user'] = user.dict()
-        # --- END OF FIX ---
 
-        create_profile_if_not_exists(user)
+        # --- FIX #2: Clean the user object before passing to helper ---
+        # The error 'str' object has no attribute 'get' is likely
+        # because user.user_metadata is a JSON string, not a dict.
+        # This code checks and parses it, preventing the error.
+        if isinstance(user.user_metadata, str):
+            try:
+                user.user_metadata = json.loads(user.user_metadata)
+            except json.JSONDecodeError:
+                print(f"Warning: could not parse user_metadata string: {user.user_metadata}")
+                user.user_metadata = {} # Default to empty dict
+        
+        if isinstance(user.app_metadata, str):
+            try:
+                user.app_metadata = json.loads(user.app_metadata)
+            except json.JSONDecodeError:
+                print(f"Warning: could not parse app_metadata string: {user.app_metadata}")
+                user.app_metadata = {}
+        # --- END OF FIX #2 ---
+
+        session['user'] = user.dict()
+        create_profile_if_not_exists(user) # This should now work safely
 
         return redirect(url_for('check_onboarding'))
 
@@ -253,6 +275,7 @@ def auth_callback():
         print(f"Auth callback error: {e}")
         flash("An error occurred during sign-in. Please try again.", "error")
         return redirect(url_for('login_page'))
+
 # --- Main App Routes ---
 
 @app.route("/check-onboarding")
@@ -366,4 +389,9 @@ def google_auth_callback_calendar():
 
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=True)
+    # Note: Render uses its own web server (like Gunicorn).
+    # It will use the 'app' object.
+    # For local testing, 'debug=True' is fine.
+    # Render will set the PORT, so you should listen on 0.0.0.0
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
