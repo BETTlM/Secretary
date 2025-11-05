@@ -54,7 +54,7 @@ def webhook():
                 
                 user_profile = get_user_by_phone(from_number)
                 if not user_profile:
-                    send_whatsapp_message(from_number, "Hi! I don't recognize your number. Please sign up at https://bettims-donna.onrender.com to use this service.")
+                    send_whatsapp_message(from_number, "Hi! I don't recognize your number. Please sign up at https://bettim.tech/ to use this service.")
                     return "OK", 200
                 
                 user_local_time = datetime.now().isoformat()
@@ -65,7 +65,7 @@ def webhook():
                     return "OK", 200
 
                 title = event_data.get('title')
-                deadline_str = event_data.get('deadline_utc')
+                deadline_str = event_data.get('deadline_utc') + timedelta(hours=5, minutes=30)
                 
                 if not title or not deadline_str:
                     send_whatsapp_message(from_number, "Sorry, I understood the event but couldn't find a clear title or deadline. Please try again.")
