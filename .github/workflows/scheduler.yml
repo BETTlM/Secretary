@@ -1,0 +1,42 @@
+# .github/workflows/scheduler.yml
+
+name: Run WhatsApp Reminder Scheduler
+
+on:
+  # This makes it run on a schedule
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run-scheduler:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13.4' # Match your Render version
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Create credentials.json
+        run: echo "${{ secrets.GOOGLE_CREDS_JSON }}" > credentials.json
+          
+      - name: Run the scheduler script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          META_PHONE_NUMBER_ID: ${{ secrets.META_PHONE_NUMBER_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }} # You may need to add this
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }} # And this
+
+        run: python scheduler.py
