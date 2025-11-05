@@ -112,7 +112,7 @@ def webhook():
                 reply_message = (
                     f"✅ *Event Synced!*\n\n"
                     f"*Event:* {title}\n"
-                    f"*Deadline:* {deadline_str}\n"
+                    f"*Deadline:* {deadline_str[:-9:]}\n"
                     f"*Priority:* {priority.capitalize()}\n\n"
                     f"I'll send you a reminder 1 hour before it's due."
                 )
