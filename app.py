@@ -243,23 +243,17 @@ def auth_callback():
     try:
         auth_code = request.args.get("code")
         
-        supabase.auth.exchange_code_for_session(auth_code)
+        # --- THIS IS THE FIX ---
+        # The library expects a dictionary, not a string
+        supabase.auth.exchange_code_for_session({"auth_code": auth_code})
+        # --- END OF FIX ---
+
         user_response = supabase.auth.get_user()
         user = user_response.user
 
-        # --- DEBUGGING LOGS ---
-        print(f"DEBUG: User object received: {user}")
-        if user:
-            print(f"DEBUG: user.id: {user.id}")
-            print(f"DEBUG: user.email: {user.email}")
-            print(f"DEBUG: user.user_metadata type: {type(user.user_metadata)}")
-            print(f"DEBUG: user.user_metadata value: {user.user_metadata}")
-            print(f"DEBUG: user.app_metadata type: {type(user.app_metadata)}")
-            print(f"DEBUG: user.app_metadata value: {user.app_metadata}")
-        else:
-            print("DEBUG: User object is None!")
+        if not user:
+            print("DEBUG: User object is None after auth exchange.")
             raise Exception("User is None after auth exchange.")
-        # --- END DEBUGGING LOGS ---
 
         # --- FIX #2: Clean the user object before passing to helper ---
         # The error 'str' object has no attribute 'get' is likely
@@ -280,20 +274,15 @@ def auth_callback():
                 user.app_metadata = {}
         # --- END OF FIX #2 ---
 
-        print("DEBUG: Metadata cleaned. Calling user.dict()") # New log
         session['user'] = user.dict()
-        print("DEBUG: user.dict() saved in session. Calling create_profile_if_not_exists()") # New log
         create_profile_if_not_exists(user) # This should now work safely
-        print("DEBUG: create_profile_if_not_exists() successful.") # New log
 
         return redirect(url_for('check_onboarding'))
 
     except Exception as e:
         print(f"Auth callback error: {e}")
-        # Add more detail to the error log
         import traceback
         print(traceback.format_exc())
-        # ---
         flash("An error occurred during sign-in. Please try again.", "error")
         return redirect(url_for('login_page'))
 
