@@ -336,6 +336,11 @@ def connect_google_calendar():
     session['google_oauth_state'] = state
     return redirect(authorization_url)
 
+@app.route("/privacy")
+def privacy_policy():
+    """Renders the public privacy policy page."""
+    return render_template("privacy.html")
+
 @app.route("/google-auth-callback-calendar")
 @login_required
 def google_auth_callback_calendar():

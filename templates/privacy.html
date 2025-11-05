@@ -1,0 +1,63 @@
+{% extends "layout.html" %}
+{% block title %}Privacy Policy - AutoSync{% endblock %}
+
+{% block content %}
+<div 
+    class="w-full max-w-4xl p-8 sm:p-10 glass-card"
+    x-data="{}" 
+    x-transition:enter="transition ease-out duration-300 transform"
+    x-transition:enter-start="opacity-0 transform scale-90"
+    x-transition:enter-end="opacity-100 transform scale-100"
+>
+    <h1 class="text-3xl font-bold text-center text-white mb-8">Privacy Policy for AutoSync AI</h1>
+    
+    <div class="space-y-6 text-gray-300 text-left">
+        <p><strong>Effective Date:</strong> November 5, 2025</p>
+
+        <p>Welcome to AutoSync AI. We are committed to protecting your privacy. This Privacy Policy explains how we collect, use, store, and protect your information when you use our service.</p>
+
+        <h2 class="text-2xl font-semibold text-white pt-4">1. Information We Collect</h2>
+        <ul class="list-disc list-inside space-y-2">
+            <li><strong>Account Information:</strong> When you sign up, we collect your email address (via Google or direct sign-up) and your name. We also ask for your WhatsApp phone number to link your account to the bot.</li>
+            <li><strong>User Content:</strong> We process the content of the WhatsApp messages you forward to our service. This is necessary to parse event details.</li>
+            <li><strong>API Tokens & Keys:</strong> To sync your events, we require you to provide an API Key for Notion and an OAuth Refresh Token for Google Calendar.</li>
+        </ul>
+
+        <h2 class="text-2xl font-semibold text-white pt-4">2. How We Use Your Information</h2>
+        <ul class="list-disc list-inside space-y-2">
+            <li><strong>To Provide the Service:</strong> We use your phone number to identify you. We use your API tokens to create events in your Google Calendar and pages in your Notion database on your behalf.</li>
+            <li><strong>To Parse Events:</strong> The text content of your forwarded WhatsApp messages is sent to a third-party AI service (Google Gemini) for the sole purpose of extracting event details (title, deadline, priority).</li>
+            <li><strong>To Send Reminders:</strong> We store the event title, deadline, and your phone number in our `scheduled_events` database to send you a WhatsApp reminder one hour before the event.</li>
+        </ul>
+
+        <h2 class="text-2xl font-semibold text-white pt-4">3. How We Store and Secure Your Information</h2>
+        <ul class="list-disc list-inside space-y-2">
+            <li>Your Google Calendar and Notion API tokens are **highly sensitive**. We store them securely in our encrypted Supabase database.</li>
+            <li>We **never** log or store the full content of your WhatsApp messages after they have been processed. We only store the extracted event details (title, deadline) required for the reminder.</li>
+            <li>All communication between you, our server, and third-party APIs is encrypted using industry-standard SSL (HTTPS).</li>
+        </ul>
+
+        <h2 class="text-2xl font-semibold text-white pt-4">4. Third-Party Services</h2>
+        <p>We do not share your personal information with any third parties, with two critical exceptions:</p>
+        <ul class="list-disc list-inside space-y-2">
+            <li><strong>Google Gemini:</strong> The *text* of your message is sent to the Gemini API for parsing. Your personal data (phone number, email, API keys) is **never** sent to the AI.</li>
+            <li><strong>WhatsApp (Meta API):</strong> We use the Meta API to send confirmation and reminder messages back to your phone number.</li>
+        </ul>
+
+        <h2 class="text-2xl font-semibold text-white pt-4">5. Your Rights & Data Deletion</h2>
+        <p>You have the right to access and delete your data at any time.</p>
+        <ul class="list-disc list-inside space-y-2">
+            <li>You can revoke Google Calendar access at any time from your Google Account settings.</li>
+            <li>You can rotate or delete your Notion API key from your Notion settings.</li>
+            <li>To delete your entire account and all associated data (including API keys and scheduled reminders), please contact us at **[YOUR_CONTACT_EMAIL_HERE]**.</li>
+        </ul>
+
+        <h2 class="text-2xl font-semibold text-white pt-4">6. Changes to This Policy</h2>
+        <p>We may update this policy from time to time. We will notify you of any significant changes by posting the new policy on this page.</p>
+
+        <h2 class="text-2xl font-semibold text-white pt-4">7. Contact Us</h2>
+        <p>If you have any questions about this Privacy Policy, please contact us at **[YOUR_CONTACT_EMAIL_HERE]**.</p>
+        <p>This app is operated by **[YOUR_NAME / BUSINESS_NAME_HERE]**.</p>
+    </div>
+</div>
+{% endblock %}
