@@ -62,7 +62,7 @@ def webhook():
                 
                 # Get current time for the prompt
                 user_local_time = datetime.now().isoformat()
-                event_data = call_gemini_api(message_body)
+                event_data = call_gemini_api(message_body, user_local_time)
                 
                 if not event_data:
                     send_whatsapp_message(from_number, "Sorry, I had a problem understanding that. Please try again.")
@@ -77,24 +77,37 @@ def webhook():
 
                 priority = event_data.get('priority', 'medium')
                 
-                # Convert string to datetime object for the scheduler
-                try:
-                    deadline_utc = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
-                    reminder_time_utc = deadline_utc - timedelta(hours=1)
-                except Exception as e:
-                    print(f"Error parsing deadline string '{deadline_str}': {e}")
-                    send_whatsapp_message(from_number, "Sorry, I couldn't parse the deadline format from the AI.")
-                    return "OK", 200
+                # --- NEW LOGIC TO CHECK REMINDER TIME ---
+                will_send_reminder = False
+                reminder_message = ""
 
-                # Add to scheduler
-                add_scheduled_event(
-                    user_id=user_profile['id'],
-                    phone_number=from_number,
-                    title=title,
-                    deadline_utc=deadline_utc,
-                    reminder_time_utc=reminder_time_utc
-                )
-                
+                try:
+                    # 1. Convert deadline string to a real datetime object
+                    deadline_utc = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
+                    
+                    # 2. Calculate the reminder time (1 hour before)
+                    reminder_time_utc = deadline_utc - timedelta(hours=1)
+                    
+                    # 3. Get the current time in UTC
+                    now_utc = datetime.now(timezone.utc)
+                    
+                    # 4. Check if the reminder time is in the future
+                    if reminder_time_utc > now_utc:
+                        will_send_reminder = True
+                        add_scheduled_event(
+                            user_id=user_profile['id'],
+                            phone_number=from_number,
+                            title=title,
+                            deadline_utc=deadline_utc,
+                            reminder_time_utc=reminder_time_utc
+                        )
+                        reminder_message = "I'll send you a reminder 1 hour before it's due."
+                    else:
+                        reminder_message = "The 1-hour reminder time for this event is already in the past, so a reminder won't be sent."
+                    
+                except Exception as e:
+                    print(f"Error parsing deadline or scheduling: {e}")
+                    reminder_message = "Sorry, I couldn't parse the deadline to schedule a reminder."                
                 # Sync to Notion
                 if (user_profile.get('sync_notion') and 
                     user_profile.get('notion_api_key') and 
