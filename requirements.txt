@@ -11,7 +11,6 @@ cryptography==46.0.3
 deprecation==2.1.0
 firebase_admin==7.1.0
 Flask==3.1.2
-flask-cors==6.0.1
 google-ai-generativelanguage==0.6.15
 google-api-core==2.28.1
 google-api-python-client==2.186.0
