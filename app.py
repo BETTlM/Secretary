@@ -62,7 +62,7 @@ def webhook():
                 
                 # Get current time for the prompt
                 user_local_time = datetime.now().isoformat()
-                event_data = call_gemini_api(message_body, user_local_time)
+                event_data = call_gemini_api(message_body)
                 
                 if not event_data:
                     send_whatsapp_message(from_number, "Sorry, I had a problem understanding that. Please try again.")
