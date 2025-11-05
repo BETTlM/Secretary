@@ -230,19 +230,29 @@ def auth_callback():
     """Handles the callback from Supabase (Google) Auth."""
     try:
         auth_code = request.args.get("code")
-        session_data = supabase.auth.exchange_code_for_session(auth_code)
-        
-        user = session_data.user
+
+        # --- THIS IS THE OLD, BUGGY CODE ---
+        # session_data = supabase.auth.exchange_code_for_session(auth_code)
+        # user = session_data.user
+        # session['user'] = user.dict()
+
+        # --- THIS IS THE NEW, CORRECTED CODE ---
+        # exchange_code_for_session() automatically sets the user session
+        # in the client. We just need to get the user.
+        supabase.auth.exchange_code_for_session(auth_code)
+        user_response = supabase.auth.get_user()
+        user = user_response.user
         session['user'] = user.dict()
-        
+        # --- END OF FIX ---
+
         create_profile_if_not_exists(user)
-        
+
         return redirect(url_for('check_onboarding'))
+
     except Exception as e:
         print(f"Auth callback error: {e}")
         flash("An error occurred during sign-in. Please try again.", "error")
         return redirect(url_for('login_page'))
-
 # --- Main App Routes ---
 
 @app.route("/check-onboarding")
