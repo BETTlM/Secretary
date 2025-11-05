@@ -1,54 +1,77 @@
+# scheduler.py
 import os
 import time
 from datetime import datetime, timezone, timedelta
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo  # Using your blueprint's modern library
 
 from dotenv import load_dotenv
-load_dotenv()
+load_dotenv() # Load .env variables
 
-from supabase_helpers import get_pending_reminders, mark_reminder_as_sent
+# --- THIS IS THE CRITICAL CHANGE ---
+# We import the NEW Firebase helper functions
+# We also import 'db' to ensure firebase_admin.initialize_app() runs first.
+from firebase_helpers import get_pending_reminders, mark_reminder_as_sent, db
 from core_logic import send_whatsapp_message
 
-SLEEP_INTERVAL = 60 
+SLEEP_INTERVAL = 60 # Check for new reminders every 60 seconds
 
 def run_scheduler():
-    print("Starting reminder scheduler...")
+    print("Starting Firebase Reminder Scheduler... (Daemon Mode)")
+
     while True:
         try:
             now_utc = datetime.now(timezone.utc)
-            print(f"[{now_utc.isoformat()}] Checking for pending reminders...")
+            print(f"[{now_utc.isoformat()}] Checking for pending reminders in Firestore...")
+
+            # Get pending reminders from Firestore
             reminders = get_pending_reminders(now_utc)
-            
+
             if not reminders:
                 print("No reminders due right now.")
             else:
                 print(f"Found {len(reminders)} reminders to send!")
+
             for reminder in reminders:
                 try:
-                    deadline_str = reminder['event_deadline_utc']
-                    deadline_utc = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
+                    reminder_id = reminder['id']
+                    deadline_utc = reminder['event_deadline_utc']
 
+                    # Firestore returns a Timestamp; convert it to a Python datetime
+                    if not isinstance(deadline_utc, datetime):
+                        deadline_utc = deadline_utc.to_datetime()
+
+                    # Convert to IST (Asia/Kolkata) for the message
                     ist_tz = ZoneInfo("Asia/Kolkata")
                     deadline_ist = deadline_utc.astimezone(ist_tz)
-                    deadline_ist_str = deadline_ist.strftime('%Y-%m-%d %H:%M')
-                    
+                    # Format as: 01:30 PM, Nov 05
+                    deadline_ist_str = deadline_ist.strftime('%I:%M %p, %b %d') 
+
                     message = (
                         f"🔔 *REMINDER* 🔔\n\n"
                         f"This is a 1-hour reminder for your event:\n\n"
                         f"*{reminder['event_title']}*\n\n"
                         f"It's due at *{deadline_ist_str}* (IST)."
                     )
+
+                    # 1. Send the WhatsApp message
                     send_whatsapp_message(reminder['phone_number'], message)
-                    mark_reminder_as_sent(reminder['id'])
-                    print(f"Successfully sent reminder {reminder['id']} to {reminder['phone_number']}")
+
+                    # 2. Mark it as sent in the database
+                    mark_reminder_as_sent(reminder_id)
+
+                    print(f"Successfully sent reminder {reminder_id} to {reminder['phone_number']}")
+
                 except Exception as e:
-                    print(f"Error processing reminder {reminder['id']}: {e}")
+                    # Log the error for a single failed reminder
+                    print(f"Error processing reminder {reminder.get('id', 'unknown')}: {e}")
 
             print(f"Scheduler sleeping for {SLEEP_INTERVAL} seconds...")
             time.sleep(SLEEP_INTERVAL)
 
         except Exception as e:
+            # This catches a major loop error (e.g., can't connect to DB)
             print(f"Major scheduler loop error: {e}")
+            print(f"Sleeping for {SLEEP_INTERVAL} seconds before retrying...")
             time.sleep(SLEEP_INTERVAL)
 
 if __name__ == "__main__":
