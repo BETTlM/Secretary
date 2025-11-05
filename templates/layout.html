@@ -4,25 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Page Title -->
     <title>{% block title %}Donna AI{% endblock %}</title>
     
-    <!-- Fonts & Scripts -->
     <link rel="preconnect" href="https://rsms.me/">
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     
     <style>
-        /* Base Font */
         body { 
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
         }
 
-        /* * The new Mesh Gradient Background
-         * This is a lightweight, CSS-only visual. NO CANVAS.
-        */
         body::before {
             content: '';
             position: fixed;
@@ -32,14 +26,12 @@
             height: 100vh;
             z-index: -1;
             opacity: 0.8;
-            background-color: #0c0a09; /* stone-950 */
-            /* A beautiful, subtle mesh gradient */
+            background-color: #0c0a09;
             background-image: 
                 radial-gradient(at 20% 15%, hsla(272, 76%, 53%, 0.2) 0px, transparent 50%),
                 radial-gradient(at 75% 30%, hsla(220, 80%, 55%, 0.2) 0px, transparent 50%),
                 radial-gradient(at 10% 80%, hsla(300, 70%, 50%, 0.2) 0px, transparent 50%),
                 radial-gradient(at 80% 90%, hsla(190, 70%, 50%, 0.2) 0px, transparent 50%);
-            /* A subtle animation to make it feel alive */
             animation: gradient-flow 20s ease-in-out infinite;
         }
 
@@ -49,22 +41,18 @@
             100% { background-position: 0% 50%; }
         }
 
-        /* * The "Glassmorphism" Card Style
-         * This is the blurred, semi-transparent look for all our cards.
-        */
         .glass-card {
-            background-color: rgba(17, 24, 39, 0.6); /* gray-900 with 60% opacity */
+            background-color: rgba(17, 24, 39, 0.6); 
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(55, 65, 81, 0.5); /* gray-700 with 50% opacity */
-            border-radius: 1.5rem; /* rounded-3xl */
+            border: 1px solid rgba(55, 65, 81, 0.5); 
+            border-radius: 1.5rem; 
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
 <body class="bg-stone-950 text-gray-200 antialiased">
 
-    <!-- Navigation Bar -->
     <nav class="fixed top-0 left-0 right-0 z-50 p-4">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <a href="/" class="text-2xl font-bold text-white flex items-center group">
@@ -72,7 +60,7 @@
                 <span class="group-hover:text-blue-300 transition-colors">Donna</span>
             </a>
             <div>
-                <!-- This dynamically shows Login/Logout -->
+
                 {% if session.get('user') %}
                     <a href="/dashboard" class="py-2 px-4 text-sm text-gray-300 hover:text-white transition">Dashboard</a>
                     <a href="/logout" class="py-2 px-5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition transform hover:scale-105 shadow-lg">Logout</a>
@@ -84,7 +72,6 @@
         </div>
     </nav>
     
-    <!-- Main content block -->
     <main class="w-full min-h-screen flex items-center justify-center pt-24 pb-12 px-4">
         {% block content %}{% endblock %}
     </main>

@@ -4,7 +4,7 @@ __pycache__/
 venv/
 *.venv/
 
-# --- Secrets (NEVER upload these) ---
+# --- Secrets ---
 .env
 credentials.json
 token.json

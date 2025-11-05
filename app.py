@@ -1,14 +1,14 @@
 import os
-import json  # Import json for parsing metadata
+import json
+import traceback
 from flask import (
     Flask, request, abort, render_template, 
     redirect, session, url_for, flash
 )
 from google_auth_oauthlib.flow import Flow
 from datetime import datetime, timedelta, timezone
-from functools import wraps # We'll use this for a login decorator
+from functools import wraps
 
-# Import our helper files
 from core_logic import (
     send_whatsapp_message, 
     call_gemini_api, 
@@ -16,6 +16,7 @@ from core_logic import (
     get_google_service_from_token, 
     create_google_calendar_event
 )
+
 from supabase_helpers import (
     supabase,
     sign_up_with_email,
@@ -33,10 +34,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 VERIFY_TOKEN = os.environ.get("META_VERIFY_TOKEN")
 GOOGLE_CREDS_FILE = 'credentials.json'
-
-#################################################
-# SECTION 1: WHATSAPP BOT WEBHOOK (Unchanged)
-#################################################
 
 @app.route("/whatsapp-webhook", methods=['GET', 'POST'])
 def webhook():
@@ -60,7 +57,6 @@ def webhook():
                     send_whatsapp_message(from_number, "Hi! I don't recognize your number. Please sign up at https://bettims-donna.onrender.com to use this service.")
                     return "OK", 200
                 
-                # Get current time for the prompt
                 user_local_time = datetime.now().isoformat()
                 event_data = call_gemini_api(message_body)
                 
@@ -76,22 +72,13 @@ def webhook():
                     return "OK", 200
 
                 priority = event_data.get('priority', 'medium')
-                
-                # --- NEW LOGIC TO CHECK REMINDER TIME ---
                 will_send_reminder = False
                 reminder_message = ""
 
                 try:
-                    # 1. Convert deadline string to a real datetime object
                     deadline_utc = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
-                    
-                    # 2. Calculate the reminder time (1 hour before)
                     reminder_time_utc = deadline_utc - timedelta(hours=1)
-                    
-                    # 3. Get the current time in UTC
                     now_utc = datetime.now(timezone.utc)
-                    
-                    # 4. Check if the reminder time is in the future
                     if reminder_time_utc > now_utc:
                         will_send_reminder = True
                         add_scheduled_event(
@@ -104,24 +91,18 @@ def webhook():
                         reminder_message = "I'll send you a reminder 1 hour before it's due."
                     else:
                         reminder_message = "The 1-hour reminder time for this event is already in the past, so a reminder won't be sent."
-                    
                 except Exception as e:
                     print(f"Error parsing deadline or scheduling: {e}")
                     reminder_message = "Sorry, I couldn't parse the deadline to schedule a reminder."                
-                # Sync to Notion
                 if (user_profile.get('sync_notion') and 
                     user_profile.get('notion_api_key') and 
                     user_profile.get('notion_database_id')):
                     create_notion_page(user_profile['notion_api_key'], user_profile['notion_database_id'], title, deadline_str, priority)
-                
-                # Sync to Google Calendar
                 if (user_profile.get('sync_calendar') and 
                     user_profile.get('google_refresh_token')):
                     service = get_google_service_from_token(user_profile['google_refresh_token'])
                     if service:
                         create_google_calendar_event(service, title, deadline_str)
-                
-                # Send confirmation reply
                 reply_message = (
                     f"✅ *Event Synced!*\n\n"
                     f"*Event:* {title}\n"
@@ -139,11 +120,6 @@ def webhook():
     else:
         abort(405)
 
-#################################################
-# SECTION 2: WEBSITE & USER AUTH (Rebuilt)
-#################################################
-
-# --- Auth Helper ---
 def login_required(f):
     """A decorator to protect routes that require a login."""
     @wraps(f)
@@ -154,7 +130,6 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- Homepage & Auth Routes ---
 @app.route("/")
 def home():
     """Renders the public homepage or redirects to dashboard if logged in."""
@@ -188,7 +163,6 @@ def handle_register():
     if not email or not password:
         flash("Email and password are required.", "error")
         return redirect(url_for('register_page'))
-        
     response, error = sign_up_with_email(email, password)
     
     if error:
@@ -196,15 +170,10 @@ def handle_register():
         return redirect(url_for('register_page'))
     elif response.user:
         
-        # --- FIX #1: Ensure profile is created for email sign-ups ---
-        # This ensures that email/pass users also get a profile
-        # in your 'profiles' table, just like OAuth users.
         try:
             create_profile_if_not_exists(response.user)
         except Exception as e:
             print(f"Error creating profile for new email user: {e}")
-            # Don't block registration, but log the error
-        # --- END OF FIX #1 ---
 
         flash("Registration successful! Please check your email to verify.", "info")
         return redirect(url_for('login_page'))
@@ -255,12 +224,7 @@ def auth_callback():
     """Handles the callback from Supabase (Google) Auth."""
     try:
         auth_code = request.args.get("code")
-        
-        # --- THIS IS THE FIX ---
-        # The library expects a dictionary, not a string
         supabase.auth.exchange_code_for_session({"auth_code": auth_code})
-        # --- END OF FIX ---
-
         user_response = supabase.auth.get_user()
         user = user_response.user
 
@@ -268,16 +232,12 @@ def auth_callback():
             print("DEBUG: User object is None after auth exchange.")
             raise Exception("User is None after auth exchange.")
 
-        # --- FIX #2: Clean the user object before passing to helper ---
-        # The error 'str' object has no attribute 'get' is likely
-        # because user.user_metadata is a JSON string, not a dict.
-        # This code checks and parses it, preventing the error.
         if isinstance(user.user_metadata, str):
             try:
                 user.user_metadata = json.loads(user.user_metadata)
             except json.JSONDecodeError:
                 print(f"Warning: could not parse user_metadata string: {user.user_metadata}")
-                user.user_metadata = {} # Default to empty dict
+                user.user_metadata = {}
         
         if isinstance(user.app_metadata, str):
             try:
@@ -285,21 +245,17 @@ def auth_callback():
             except json.JSONDecodeError:
                 print(f"Warning: could not parse app_metadata string: {user.app_metadata}")
                 user.app_metadata = {}
-        # --- END OF FIX #2 ---
 
         session['user'] = user.dict()
-        create_profile_if_not_exists(user) # This should now work safely
+        create_profile_if_not_exists(user)
 
         return redirect(url_for('check_onboarding'))
 
     except Exception as e:
         print(f"Auth callback error: {e}")
-        import traceback
         print(traceback.format_exc())
         flash("An error occurred during sign-in. Please try again.", "error")
         return redirect(url_for('login_page'))
-
-# --- Main App Routes ---
 
 @app.route("/check-onboarding")
 @login_required
@@ -335,7 +291,6 @@ def dashboard():
         session.clear()
         return redirect(url_for('login_page'))
 
-    # This context dictionary now includes all the data for the bento box
     context = {
         "user_email": profile.get('email'),
         "user_phone": profile.get('phone_number', ''),
@@ -356,10 +311,6 @@ def save_notion():
     flash("Notion settings saved successfully!", "info")
     return redirect(url_for('dashboard'))
 
-#################################################
-# SECTION 3: GOOGLE CALENDAR (Protected)
-#################################################
-
 @app.route("/connect-google-calendar")
 @login_required
 def connect_google_calendar():
@@ -378,8 +329,6 @@ def connect_google_calendar():
 def google_auth_callback_calendar():
     """Handles the callback from the CALENDAR flow."""
     user_id = session['user']['id']
-    
-    # Check for state to prevent CSRF
     if 'google_oauth_state' not in session or session['google_oauth_state'] != request.args.get('state'):
         flash("Invalid state. Authentication request denied.", "error")
         return redirect(url_for('dashboard'))
@@ -396,9 +345,6 @@ def google_auth_callback_calendar():
         refresh_token = flow.credentials.refresh_token
         
         if not refresh_token:
-             # This happens if the user has already approved the app and doesn't
-             # re-consent. The 'prompt=consent' in the authorization_url
-             # is meant to force this, but we handle it just in case.
              flash("Could not get a refresh token. Please make sure you are granting offline access.", "error")
              return redirect(url_for('dashboard'))
 
@@ -412,9 +358,5 @@ def google_auth_callback_calendar():
 
 
 if __name__ == "__main__":
-    # Note: Render uses its own web server (like Gunicorn).
-    # It will use the 'app' object.
-    # For local testing, 'debug=True' is fine.
-    # Render will set the PORT, so you should listen on 0.0.0.0
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)

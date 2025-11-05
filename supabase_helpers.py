@@ -3,12 +3,10 @@ from supabase import create_client, Client
 from gotrue.types import User
 from datetime import datetime
 
-# Initialize Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# --- AUTH FUNCTIONS ---
 def sign_up_with_email(email, password):
     """Signs up a new user."""
     try:
@@ -27,7 +25,6 @@ def sign_in_with_email(email, password):
     except Exception as e:
         return None, e
 
-# --- PROFILE & BOT FUNCTIONS ---
 def get_user_by_phone(phone_number: str):
     """Finds a user profile by their phone number for the bot."""
     try:
@@ -94,9 +91,6 @@ def save_user_google_token(user_id: str, refresh_token: str):
         }).eq("id", user_id).execute()
     except Exception as e:
         print(f"Error saving Google token: {e}")
-
-
-# --- NEW SCHEDULER FUNCTIONS ---
 
 def add_scheduled_event(user_id: str, phone_number: str, title: str, deadline_utc: datetime, reminder_time_utc: datetime):
     """Adds a new event to the scheduler table."""

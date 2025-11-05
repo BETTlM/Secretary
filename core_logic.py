@@ -25,12 +25,11 @@ def send_whatsapp_message(to_number: str, text: str):
     
     try:
         response = requests.post(url, headers=headers, data=json.dumps(data))
-        response.raise_for_status()  # Raise an error for bad status codes
+        response.raise_for_status()
         print(f"WhatsApp message sent to {to_number}")
     except requests.exceptions.RequestException as e:
         print(f"Failed to send WhatsApp message: {e}")
 
-# --- 2. GEMINI FUNCTION ---
 def call_gemini_api(text: str):
     """Sends text to Gemini and gets structured JSON back."""
     genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
@@ -39,7 +38,7 @@ def call_gemini_api(text: str):
     
     ist_tz = timezone(timedelta(hours=5, minutes=30))
     current_time_ist = datetime.now(ist_tz)
-    today_date_str = current_time_ist.strftime("%Y-%m-%d %H:%M:%S %Z") # e.g., "2025-11-05 10:00:00 IST"
+    today_date_str = current_time_ist.strftime("%Y-%m-%d %H:%M:%S %Z")
 
     prompt = f"""
     You are an expert event parser. Your task is to extract a 'title', 'deadline_utc', and 'priority' from the user's text.
@@ -94,7 +93,6 @@ def call_gemini_api(text: str):
         print(f"Gemini API error: {e}")
         return None
 
-# --- 3. NOTION FUNCTION ---
 def create_notion_page(api_key: str, db_id: str, title: str, deadline: str, priority: str):
     """Creates a new page in a user's specific Notion database."""
     try:
@@ -115,7 +113,6 @@ def create_notion_page(api_key: str, db_id: str, title: str, deadline: str, prio
         print(f"Notion API error: {e}")
         return False
 
-# --- 4. GOOGLE CALENDAR FUNCTIONS ---
 def get_google_service_from_token(refresh_token: str):
     """
     Creates a Google Calendar service object from a user's refresh token.
@@ -126,7 +123,7 @@ def get_google_service_from_token(refresh_token: str):
     
     try:
         creds = Credentials(
-            token=None,  # No access token, we have a refresh token
+            token=None,
             refresh_token=refresh_token,
             token_uri="https://oauth2.googleapis.com/token",
             client_id=CLIENT_ID,
