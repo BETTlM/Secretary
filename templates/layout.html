@@ -17,9 +17,12 @@
     NEW: FIREBASE SDKs
     We load these in the <head> so they are ready for the login forms.
     -->
+    <!-- Firebase App (Core) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <!-- Firebase Auth Service -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <!-- Our custom Firebase functions -->
+    
+    <!-- Our custom Firebase functions from static/firebase-init.js -->
     <script src="{{ url_for('static', filename='firebase-init.js') }}"></script>
     
     <style>
@@ -29,7 +32,7 @@
             overflow-x: hidden;
         }
 
-        /* The new Mesh Gradient Background (CSS Only) */
+        /* The new Mesh Gradient Background (CSS Only, NO CANVAS) */
         body::before {
             content: '';
             position: fixed;
@@ -79,7 +82,7 @@
             </a>
             <div>
                 <!-- 
-                NEW: This nav is now dynamic. It checks the *server* session.
+                NEW: This nav is now dynamic based on the Flask session cookie.
                 The signOut() function is from firebase-init.js
                 -->
                 {% if session.get('user_id') %}
