@@ -4,19 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <title>{% block title %}Donna AI{% endblock %}</title>
+    <!-- Page Title -->
+    <title>{% block title %}AutoSync AI{% endblock %}</title>
     
+    <!-- Fonts & Scripts -->
     <link rel="preconnect" href="https://rsms.me/">
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!--
+    NEW: FIREBASE SDKs
+    We load these in the <head> so they are ready for the login forms.
+    -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <!-- Our custom Firebase functions -->
+    <script src="{{ url_for('static', filename='firebase-init.js') }}"></script>
     
     <style>
+        /* Base Font */
         body { 
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
         }
 
+        /* The new Mesh Gradient Background (CSS Only) */
         body::before {
             content: '';
             position: fixed;
@@ -26,7 +39,7 @@
             height: 100vh;
             z-index: -1;
             opacity: 0.8;
-            background-color: #0c0a09;
+            background-color: #0c0a09; /* stone-950 */
             background-image: 
                 radial-gradient(at 20% 15%, hsla(272, 76%, 53%, 0.2) 0px, transparent 50%),
                 radial-gradient(at 75% 30%, hsla(220, 80%, 55%, 0.2) 0px, transparent 50%),
@@ -41,30 +54,37 @@
             100% { background-position: 0% 50%; }
         }
 
+        /* The "Glassmorphism" Card Style */
         .glass-card {
-            background-color: rgba(17, 24, 39, 0.6); 
+            background-color: rgba(17, 24, 39, 0.6); /* gray-900 with 60% opacity */
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(55, 65, 81, 0.5); 
-            border-radius: 1.5rem; 
+            border: 1px solid rgba(55, 65, 81, 0.5); /* gray-700 with 50% opacity */
+            border-radius: 1.5rem; /* rounded-3xl */
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
+
+        /* Hides Alpine.js elements until they are ready */
+        [x-cloak] { display: none !important; }
     </style>
 </head>
-    
 <body class="bg-stone-950 text-gray-200 antialiased">
 
+    <!-- Navigation Bar -->
     <nav class="fixed top-0 left-0 right-0 z-50 p-4">
         <div class="max-w-6xl mx-auto flex justify-between items-center">
             <a href="/" class="text-2xl font-bold text-white flex items-center group">
                 <svg class="w-8 h-8 mr-2 text-blue-400 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.196-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118L2.98 10.099c-.783-.57-.38-1.81.588-1.81h4.914a1 1 0 00.95-.69L11.049 2.927z"></path></svg>
-                <span class="group-hover:text-blue-300 transition-colors">Donna</span>
+                <span class="group-hover:text-blue-300 transition-colors">AutoSync</span>
             </a>
             <div>
-
-                {% if session.get('user') %}
+                <!-- 
+                NEW: This nav is now dynamic. It checks the *server* session.
+                The signOut() function is from firebase-init.js
+                -->
+                {% if session.get('user_id') %}
                     <a href="/dashboard" class="py-2 px-4 text-sm text-gray-300 hover:text-white transition">Dashboard</a>
-                    <a href="/logout" class="py-2 px-5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition transform hover:scale-105 shadow-lg">Logout</a>
+                    <button onclick="signOut()" class="py-2 px-5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition transform hover:scale-105 shadow-lg">Logout</button>
                 {% else %}
                     <a href="/login" class="py-2 px-4 text-sm text-gray-300 hover:text-white transition">Sign In</a>
                     <a href="/register" class="py-2 px-5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition transform hover:scale-105 shadow-lg">Sign Up Free</a>
@@ -73,9 +93,12 @@
         </div>
     </nav>
     
+    <!-- Main content block -->
     <main class="w-full min-h-screen flex items-center justify-center pt-24 pb-12 px-4">
         {% block content %}{% endblock %}
     </main>
+    
+    <!-- Footer -->
     <footer class="w-full text-center p-4 pb-8">
         <a href="/privacy" class="text-sm text-gray-500 hover:text-gray-300 transition">
             Privacy Policy
