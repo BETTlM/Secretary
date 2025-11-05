@@ -2,26 +2,21 @@
 import os
 import time
 from datetime import datetime, timezone, timedelta
-from zoneinfo import ZoneInfo  # Using your modern library
+from zoneinfo import ZoneInfo  # Using your blueprint's modern library
 
 from dotenv import load_dotenv
 load_dotenv() # Load .env variables
 
 # --- THIS IS THE CRITICAL CHANGE ---
 # We import the NEW Firebase helper functions
-# We also import 'db' from firebase_helpers to ensure firebase_admin.initialize_app()
-# runs first before any other function is called.
-from firebase_helpers import (
-    get_pending_reminders, 
-    mark_reminder_as_sent, 
-    db
-)
+# We also import 'db' to ensure firebase_admin.initialize_app() runs first.
+from firebase_helpers import get_pending_reminders, mark_reminder_as_sent, db
 from core_logic import send_whatsapp_message
 
 SLEEP_INTERVAL = 60 # Check for new reminders every 60 seconds
 
 def run_scheduler():
-    print(f"[{datetime.now()}] Starting Firebase Reminder Scheduler... (Daemon Mode)")
+    print("Starting Firebase Reminder Scheduler... (Daemon Mode)")
 
     while True:
         try:
@@ -39,13 +34,11 @@ def run_scheduler():
             for reminder in reminders:
                 try:
                     reminder_id = reminder['id']
-                    user_id = reminder['user_id']
-                    title = reminder['event_title']
                     deadline_utc = reminder['event_deadline_utc']
 
                     # Firestore returns a Timestamp; convert it to a Python datetime
                     if not isinstance(deadline_utc, datetime):
-                         deadline_utc = deadline_utc.to_datetime()
+                        deadline_utc = deadline_utc.to_datetime()
 
                     # Convert to IST (Asia/Kolkata) for the message
                     ist_tz = ZoneInfo("Asia/Kolkata")
@@ -55,8 +48,8 @@ def run_scheduler():
 
                     message = (
                         f"🔔 *REMINDER* 🔔\n\n"
-                        f"This is your 1-hour reminder for the event:\n\n"
-                        f"*{title}*\n\n"
+                        f"This is a 1-hour reminder for your event:\n\n"
+                        f"*{reminder['event_title']}*\n\n"
                         f"It's due at *{deadline_ist_str}* (IST)."
                     )
 
@@ -64,8 +57,7 @@ def run_scheduler():
                     send_whatsapp_message(reminder['phone_number'], message)
 
                     # 2. Mark it as sent in the database
-                    #    This *also* logs the activity and updates stats
-                    mark_reminder_as_sent(reminder_id, user_id, title)
+                    mark_reminder_as_sent(reminder_id)
 
                     print(f"Successfully sent reminder {reminder_id} to {reminder['phone_number']}")
 
