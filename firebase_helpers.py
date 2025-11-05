@@ -1,98 +1,77 @@
+# firebase_helpers.py
 import os
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
 from datetime import datetime, timezone
 
 # --- INITIALIZATION ---
+# This automatically finds 'serviceAccountKey.json' in the same folder
 try:
+    # Check if the app is already initialized (prevents crash on reload)
     if not firebase_admin._apps:
-        # We're on the server, use the service key
         cred = credentials.Certificate('serviceAccountKey.json')
-        print("Initializing Firebase Admin SDK from serviceAccountKey.json...")
         firebase_admin.initialize_app(cred)
-    else:
-        print("Firebase Admin SDK already initialized.")
 except Exception as e:
     print(f"FATAL: Could not initialize Firebase Admin. {e}")
-    # This will crash the app, which is what we want if we can't connect to the DB.
+    # This will crash the app, which is good. It can't run without Firebase.
 
 db = firestore.client()
 
-#################################################
-# SECTION 1: AUTH & PROFILE HELPERS
-#################################################
+# --- AUTH & PROFILE FUNCTIONS ---
 
 def verify_session_cookie(session_cookie):
-    """
-    Verifies the Flask session cookie against Firebase Auth.
-    Returns the decoded user token if valid, else None.
-    """
+    """Verifies a Flask session cookie and returns the user's decoded token."""
     try:
+        # This checks if the cookie is valid
         decoded_token = auth.verify_session_cookie(session_cookie, check_revoked=True)
         return decoded_token
-    except auth.InvalidSessionCookieError:
-        print("Invalid session cookie. Please log in again.")
-        return None
     except Exception as e:
         print(f"Error verifying session cookie: {e}")
         return None
 
 def create_profile_if_not_exists(user_id, email):
-    """
-    Creates a new user profile document in Firestore.
-    This is called the first time a user signs up.
-    """
+    """Creates a user profile in Firestore when they sign up."""
     profile_ref = db.collection('user_profiles').document(user_id)
-    profile_snapshot = profile_ref.get()
-    
-    if not profile_snapshot.exists:
-        print(f"Creating new profile for user {user_id} with email {email}...")
-        profile_data = {
-            'id': user_id,
+    if not profile_ref.get().exists:
+        profile_ref.set({
+            'id': user_id, # Store the ID in the doc as well
             'email': email,
             'phone_number': None,
-            'created_at': firestore.SERVER_TIMESTAMP,
-            'is_pro': False, # For future monetization
-            'sync_notion': False,
-            'sync_calendar': False,
+            'sync_notion': True,
+            'sync_calendar': True,
             'notion_api_key': None,
             'notion_database_id': None,
-            'google_refresh_token': None,
-            'stats_total_synced': 0,
-            'stats_reminders_sent': 0
-        }
-        profile_ref.set(profile_data)
-        return profile_data
-    
-    print(f"Profile for {user_id} already exists.")
-    return profile_snapshot.to_dict()
+            'google_refresh_token': None
+        })
+        print(f"Created new profile for user {user_id}")
+
+    # Return the profile data
+    return profile_ref.get().to_dict()
 
 def get_profile_by_user_id(user_id):
-    """Finds and returns a user profile document by their auth ID."""
+    """Finds a user profile by their auth ID for the website."""
     try:
         doc = db.collection('user_profiles').document(user_id).get()
         if doc.exists:
             return doc.to_dict()
-        print(f"Profile not found for user {user_id}")
         return None
     except Exception as e:
-        print(f"Error getting profile by ID {user_id}: {e}")
+        print(f"Error getting profile by ID: {e}")
         return None
 
 def get_user_by_phone(phone_number: str):
-    """Finds a user profile by their WhatsApp phone number."""
+    """Finds a user profile by their phone number for the bot."""
     try:
         cleaned_phone = "".join(filter(str.isdigit, phone_number))
+        # Firestore requires us to query for the field
         users_ref = db.collection('user_profiles').where('phone_number', '==', cleaned_phone).limit(1).stream()
-        
+
         for doc in users_ref:
-            # Found the user
+            # Return the first match
             return doc.to_dict()
-        
-        print(f"No user found for phone number {cleaned_phone}")
-        return None
+        return None # No user found
     except Exception as e:
-        print(f"Error getting user by phone {phone_number}: {e}")
+        print(f"Error getting user by phone: {e}")
         return None
 
 def save_phone_number(user_id: str, phone_number: str):
@@ -102,66 +81,45 @@ def save_phone_number(user_id: str, phone_number: str):
         db.collection('user_profiles').document(user_id).update({
             "phone_number": cleaned_phone
         })
-        print(f"Saved phone number for user {user_id}")
     except Exception as e:
-        print(f"Error saving phone number for user {user_id}: {e}")
+        print(f"Error saving phone number: {e}")
 
 def save_user_notion_details(user_id: str, api_key: str, db_id: str):
     """Updates a user's Notion credentials."""
     try:
         db.collection('user_profiles').document(user_id).update({
-            "notion_api_key": api_key, # NOTE: In production, you'd encrypt this
-            "notion_database_id": db_id,
-            "sync_notion": True # Automatically enable sync
+            "notion_api_key": api_key,
+            "notion_database_id": db_id
         })
-        print(f"Saved Notion details for user {user_id}")
     except Exception as e:
-        print(f"Error saving Notion details for user {user_id}: {e}")
+        print(f"Error saving Notion details: {e}")
 
 def save_user_google_token(user_id: str, refresh_token: str):
     """Saves the Google Calendar Refresh Token."""
     try:
         db.collection('user_profiles').document(user_id).update({
-            "google_refresh_token": refresh_token, # NOTE: In production, you'd encrypt this
-            "sync_calendar": True # Automatically enable sync
+            "google_refresh_token": refresh_token
         })
-        print(f"Saved Google token for user {user_id}")
     except Exception as e:
-        print(f"Error saving Google token for user {user_id}: {e}")
+        print(f"Error saving Google token: {e}")
 
-#################################################
-# SECTION 2: SCHEDULER & ACTIVITY LOG HELPERS
-#################################################
+# --- SCHEDULER FUNCTIONS ---
 
 def add_scheduled_event(user_id: str, phone_number: str, title: str, deadline_utc: datetime, reminder_time_utc: datetime):
-    """Adds a new event to the scheduler collection AND logs the activity."""
+    """Adds a new event to the scheduler collection."""
     try:
-        # 1. Add the event to be scheduled
-        event_ref = db.collection('scheduled_events').document()
-        event_ref.set({
+        # We use the user_id from Firebase Auth as the 'user_id'
+        doc_ref = db.collection('scheduled_events').document()
+        doc_ref.set({
             "user_id": user_id,
             "phone_number": phone_number,
             "event_title": title,
-            "event_deadline_utc": deadline_utc,
+            "event_deadline_utc": deadline_utc, # Firestore handles datetime objects
             "reminder_time_utc": reminder_time_utc,
             "reminder_sent": False
         })
-        
-        # 2. Add this action to the user's activity feed (for the rich dashboard)
-        _log_activity(
-            user_id=user_id,
-            icon="FiCheckCircle", # Icon name from react-icons
-            title="Event Synced",
-            description=f"'{title}' was successfully added to your sync queue."
-        )
-        
-        # 3. Update the user's stats
-        _update_user_stat(user_id, 'stats_total_synced')
-
-        print(f"Successfully scheduled event for {user_id}: {title}")
-        
     except Exception as e:
-        print(f"Error adding scheduled event for user {user_id}: {e}")
+        print(f"Error adding scheduled event: {e}")
 
 def get_pending_reminders(now_utc: datetime):
     """Fetches all reminders that are due to be sent."""
@@ -170,124 +128,22 @@ def get_pending_reminders(now_utc: datetime):
                             .where('reminder_sent', '==', False) \
                             .where('reminder_time_utc', '<=', now_utc) \
                             .stream()
-        
+
         pending_reminders = []
         for doc in reminders_query:
             data = doc.to_dict()
-            data['id'] = doc.id # Add the document ID
+            data['id'] = doc.id # Add the document ID for updating
             pending_reminders.append(data)
         return pending_reminders
     except Exception as e:
         print(f"Error fetching pending reminders: {e}")
         return []
 
-def mark_reminder_as_sent(event_id: str, user_id: str, title: str):
-    """
-    Marks a reminder as sent AND logs the activity.
-    This is called by the scheduler.
-    """
+def mark_reminder_as_sent(event_id: str):
+    """Marks a reminder as sent so it doesn't send again."""
     try:
-        # 1. Mark the event as sent
         db.collection('scheduled_events').document(event_id).update({
             "reminder_sent": True
         })
-        
-        # 2. Log this action to the user's activity feed
-        _log_activity(
-            user_id=user_id,
-            icon="FiCalendar", # Icon name from react-icons
-            title="Reminder Sent",
-            description=f"A 1-hour reminder for '{title}' was sent to your WhatsApp."
-        )
-        
-        # 3. Update the user's stats
-        _update_user_stat(user_id, 'stats_reminders_sent')
-        
-        print(f"Successfully marked reminder {event_id} as sent.")
-        
     except Exception as e:
-        print(f"Error marking reminder {event_id} as sent: {e}")
-
-#################################################
-# SECTION 3: NEW FEATURE-RICH DASHBOARD FUNCTIONS
-#################################################
-
-def _log_activity(user_id: str, icon: str, title: str, description: str):
-    """
-    Internal helper to add an item to a user's activity feed.
-    This creates a new document in a subcollection.
-    """
-    try:
-        activity_ref = db.collection('user_profiles').document(user_id).collection('activity_feed').document()
-        activity_ref.set({
-            "timestamp": firestore.SERVER_TIMESTAMP,
-            "icon": icon,
-            "title": title,
-            "description": description
-        })
-    except Exception as e:
-        print(f"Error logging activity for user {user_id}: {e}")
-
-def _update_user_stat(user_id: str, stat_field: str):
-    """
-    Internal helper to atomically increment a user's stats.
-    e.g., 'stats_total_synced' or 'stats_reminders_sent'
-    """
-    try:
-        profile_ref = db.collection('user_profiles').document(user_id)
-        profile_ref.update({
-            stat_field: firestore.Increment(1)
-        })
-    except Exception as e:
-        print(f"Error incrementing stat {stat_field} for user {user_id}: {e}")
-
-def get_user_stats(user_id: str):
-    """
-    Fetches the user's aggregated stats for the dashboard.
-    """
-    profile = get_profile_by_user_id(user_id)
-    if profile:
-        return {
-            "totalSynced": profile.get('stats_total_synced', 0),
-            "remindersSent": profile.get('stats_reminders_sent', 0)
-        }
-    return {"totalSynced": 0, "remindersSent": 0}
-
-def get_recent_activity(user_id: str, page: int = 1, limit: int = 5):
-    """
-    Fetches a paginated list of a user's recent activity for the dashboard feed.
-    """
-    try:
-        # Order by timestamp in descending order
-        query = db.collection('user_profiles').document(user_id) \
-                  .collection('activity_feed') \
-                  .order_by('timestamp', direction=firestore.Query.DESCENDING) \
-                  .limit(limit)
-        
-        # Handle pagination (basic, not cursor-based for simplicity)
-        if page > 1:
-            # Get the last document from the previous page
-            offset_query = db.collection('user_profiles').document(user_id) \
-                             .collection('activity_feed') \
-                             .order_by('timestamp', direction=firestore.Query.DESCENDING) \
-                             .limit((page - 1) * limit) \
-                             .get()
-            
-            if offset_query:
-                last_doc = offset_query[-1]
-                query = query.start_after(last_doc)
-        
-        docs = query.stream()
-        
-        activity_list = []
-        for doc in docs:
-            activity = doc.to_dict()
-            # Convert Firestore timestamp to ISO 8601 string for JSON
-            activity['id'] = doc.id
-            activity['timestamp'] = activity['timestamp'].isoformat()
-            activity_list.append(activity)
-            
-        return activity_list
-    except Exception as e:
-        print(f"Error getting recent activity for user {user_id}: {e}")
-        return []
+        print(f"Error marking reminder as sent: {e}")
