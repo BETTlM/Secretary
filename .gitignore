@@ -9,3 +9,4 @@ venv/
 credentials.json
 token.json
 temp.txt
+serviceAccountKey.json
