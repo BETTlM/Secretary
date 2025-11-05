@@ -1,5 +1,5 @@
 {% extends "layout.html" %}
-{% block title %}Dashboard - AutoSync{% endblock %}
+{% block title %}Dashboard - Donna{% endblock %}
 
 {% block content %}
 <div class="w-full max-w-6xl mx-auto py-10" 
@@ -9,12 +9,6 @@
      x-transition:enter-end="opacity-100 translate-y-0">
     
     <h1 class="text-4xl font-bold text-white mb-8">Your Dashboard</h1>
-
-    <!-- 
-      NEW: Flash Messages
-      This now uses Alpine.js to be dismissible and to show
-      any messages passed from the server.
-    -->
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="mb-6">
@@ -38,13 +32,9 @@
         </div>
       {% endif %}
     {% endwith %}
-
-    <!-- Bento Grid Layout (Unchanged) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <!-- Column 1: Status & Info -->
         <div class="lg:col-span-1 space-y-6">
-            <!-- Account Info -->
             <div class="glass-card p-6">
                 <h3 class="text-xl font-semibold text-white mb-4">Account</h3>
                 <p class="text-gray-400">Email</p>
@@ -52,8 +42,6 @@
                 <p class="text-gray-400 mt-3">WhatsApp Number</p>
                 <p class="text-white text-lg font-medium">{{ user_phone if user_phone else 'Not Set' }}</p>
             </div>
-            
-            <!-- Connection Status -->
             <div class="glass-card p-6">
                 <h3 class="text-xl font-semibold text-white mb-4">Connection Status</h3>
                 <ul class="space-y-3">
@@ -76,13 +64,8 @@
                 </ul>
             </div>
         </div>
-
-        <!-- Column 2: Settings / How-to -->
         <div class="lg:col-span-2 space-y-6">
-            <!-- Settings Card with Tabs -->
             <div class="glass-card p-6">
-                
-                <!-- Tab Navigation -->
                 <div class="border-b border-gray-600 mb-6">
                     <nav class="flex space-x-4" aria-label="Tabs">
                         <button @click="activeTab = 'general'"
@@ -97,9 +80,7 @@
                         </button>
                     </nav>
                 </div>
-
-                <!-- General Tab Content -->
-                <div x-show="activeTab === 'general'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" style="display: none;">
+                <div x-show="activeTab === 'general'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
                     <h3 class="text-xl font-semibold text-white mb-4">General Settings</h3>
                     <form action="/save-phone" method="POST" class="space-y-4">
                         <div>
@@ -114,8 +95,6 @@
                         </button>
                     </form>
                 </div>
-
-                <!-- Notion Tab Content -->
                 <div x-show="activeTab === 'notion'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" style="display: none;">
                     <h3 class="text-xl font-semibold text-white mb-4">Notion Settings</h3>
                     <form action="/save-notion" method="POST" class="space-y-4">
@@ -139,17 +118,16 @@
                     </form>
                 </div>
             </div>
-
-            <!-- How it works Card -->
             <div class="glass-card p-6">
                 <h3 class="text-xl font-semibold text-white mb-4">How It Works</h3>
                 <ol class="list-decimal list-inside space-y-2 text-gray-300">
-                    <li>Add your bot's number to your WhatsApp contacts.</li>
+                    <li>Add <a href="https://wa.me/15556449324" target="_blank">+1 (555) 644-9324</a> to your WhatsApp contacts.</li>
                     <li>Forward any message with a deadline (e.g., "Team meeting tomorrow at 3pm").</li>
                     <li>The AI parses it and syncs to your Calendar & Notion.</li>
-                    <li>You get a confirmation message *and* a 1-hour reminder.</li>
+                    <li>You get a confirmation message <b>and</b> a 1-hour reminder.</li>
                 </ol>
             </div>
         </div>
     </div>
-    {% endblock %}
+</div>
+{% endblock %}
