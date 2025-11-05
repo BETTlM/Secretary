@@ -1,31 +1,153 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
-    <div class="card">
-        <h1>Your Dashboard</h1>
-        <p>Welcome, {{ user_email }}!</p>
-        
-        <h3>Integrations</h3>
-        
-        {% if has_calendar_token %}
-            <p class="success">✅ Google Calendar is connected.</p>
-        {% else %}
-            <a href="/connect-google-calendar" class="btn google-btn">Connect Google Calendar</a>
-        {% endif %}
-        
-        <form action="/save-notion" method="POST">
-            <h4>Notion Settings</h4>
-            <input type="text" name="notion_key" placeholder="Notion API Key" value="{{ notion_key }}">
-            <input type="text" name="notion_db_id" placeholder="Notion Database ID" value="{{ notion_db_id }}">
-            <button type="submit" class="btn">Save Notion</button>
-        </form>
+{% extends "layout.html" %}
+{% block title %}Dashboard - AutoSync{% endblock %}
 
-        <a href="/logout" class="logout-link">Logout</a>
+{% block content %}
+<div class="w-full max-w-6xl mx-auto py-10" 
+     x-data="{ activeTab: 'general' }"
+     x-transition:enter="transition ease-out duration-300 transform"
+     x-transition:enter-start="opacity-0 translate-y-5"
+     x-transition:enter-end="opacity-100 translate-y-0">
+    
+    <h1 class="text-4xl font-bold text-white mb-8">Your Dashboard</h1>
+
+    <!-- Flash Messages (for save confirmations, etc.) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="mb-6">
+        {% for category, message in messages %}
+            <!-- This is an animated, dismissible alert -->
+            <div 
+                x-data="{ show: true }" x-show="show" 
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition ease-in duration-300"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="p-4 text-sm rounded-lg border flex justify-between items-center
+                {% if category == 'error' %} text-red-200 bg-red-800/50 border-red-700 
+                {% else %} text-green-200 bg-green-800/50 border-green-700 {% endif %}" 
+                role="alert">
+                <span>{{ message }}</span>
+                <button @click="show = false" class="ml-4 text-white/70 hover:text-white">&times;</button>
+            </div>
+        {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Bento Grid Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Column 1: Status & Info -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Account Info -->
+            <div class="glass-card p-6">
+                <h3 class="text-xl font-semibold text-white mb-4">Account</h3>
+                <p class="text-gray-400">Email</p>
+                <p class="text-white text-lg font-medium">{{ user_email }}</p>
+                <p class="text-gray-400 mt-3">WhatsApp Number</p>
+                <p class="text-white text-lg font-medium">{{ user_phone if user_phone else 'Not Set' }}</p>
+            </div>
+            
+            <!-- Connection Status -->
+            <div class="glass-card p-6">
+                <h3 class="text-xl font-semibold text-white mb-4">Connection Status</h3>
+                <ul class="space-y-3">
+                    <li class="flex items-center justify-between">
+                        <span class="text-gray-300">Google Calendar</span>
+                        {% if has_calendar_token %}
+                            <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-green-900 text-green-300">Connected</span>
+                        {% else %}
+                            <a href="/connect-google-calendar" class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-yellow-900 text-yellow-300 hover:bg-yellow-800 transition">Connect</a>
+                        {% endif %}
+                    </li>
+                    <li class="flex items-center justify-between">
+                        <span class="text-gray-300">Notion</span>
+                        {% if has_notion_keys %}
+                            <span class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-green-900 text-green-300">Connected</span>
+                        {% else %}
+                            <button @click="activeTab = 'notion'" class="text-xs font-medium px-2.5 py-0.5 rounded-full bg-yellow-900 text-yellow-300 hover:bg-yellow-800 transition">Set Up</button>
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Column 2: Settings / How-to -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Settings Card with Tabs -->
+            <div class="glass-card p-6">
+                
+                <!-- Tab Navigation -->
+                <div class="border-b border-gray-600 mb-6">
+                    <nav class="flex space-x-4" aria-label="Tabs">
+                        <button @click="activeTab = 'general'"
+                                :class="{ 'border-blue-500 text-white': activeTab === 'general', 'border-transparent text-gray-400 hover:text-white': activeTab !== 'general' }"
+                                class="px-3 py-2 font-medium text-sm border-b-2 transition">
+                            General
+                        </button>
+                        <button @click="activeTab = 'notion'"
+                                :class="{ 'border-blue-500 text-white': activeTab === 'notion', 'border-transparent text-gray-400 hover:text-white': activeTab !== 'notion' }"
+                                class="px-3 py-2 font-medium text-sm border-b-2 transition">
+                            Notion
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- General Tab Content -->
+                <div x-show="activeTab === 'general'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+                    <h3 class="text-xl font-semibold text-white mb-4">General Settings</h3>
+                    <form action="/save-phone" method="POST" class="space-y-4">
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-300">WhatsApp Phone Number</label>
+                            <input id="phone" name="phone" type="tel" required
+                                   class="mt-1 w-full max-w-md px-4 py-3 text-white placeholder-gray-400 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="e.g. 919087730234" value="{{ user_phone }}">
+                        </div>
+                        <button type="submit"
+                                class="w-auto px-5 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition transform hover:scale-105">
+                            Save Phone
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Notion Tab Content -->
+                <div x-show="activeTab === 'notion'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" style="display: none;">
+                    <h3 class="text-xl font-semibold text-white mb-4">Notion Settings</h3>
+                    <form action="/save-notion" method="POST" class="space-y-4">
+                        <div>
+                            <label for="notion_key" class="block text-sm font-medium text-gray-300">Notion API Key</label>
+                            <input id="notion_key" name="notion_key" type="password"
+                                   class="mt-1 w-full max-w-md px-4 py-3 text-white placeholder-gray-400 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="secret_..." value="{{ notion_key }}">
+                        </div>
+                        <div>
+                            <label for="notion_db_id" class="block text-sm font-medium text-gray-300">Notion Database ID</label>
+                            <input id="notion_db_id" name="notion_db_id" type="text"
+                                   class="mt-1 w-full max-w-md px-4 py-3 text-white placeholder-gray-400 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="e.g. 1a2b3c4d..." value="{{ notion_db_id }}">
+                            <p class="mt-2 text-xs text-gray-400">You can find this in your Notion URL. It's the long string of characters.</p>
+                        </div>
+                        <button type="submit"
+                                class="w-auto px-5 py-2 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition transform hover:scale-105">
+                            Save Notion Settings
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- How it works Card -->
+            <div class="glass-card p-6">
+                <h3 class="text-xl font-semibold text-white mb-4">How It Works</h3>
+                <ol class="list-decimal list-inside space-y-2 text-gray-300">
+                    <li>Add your bot's number to your WhatsApp contacts.</li>
+                    <li>Forward any message with a deadline (e.g., "Team meeting tomorrow at 3pm").</li>
+                    <li>The AI parses it and syncs to your Calendar & Notion.</li>
+                    <li>You get a confirmation message *and* a 1-hour reminder.</li>
+                </ol>
+            </div>
+        </div>
     </div>
-</body>
-</html>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block title %}AutoSync AI - Your Personal WhatsApp Assistant{% endblock %}
+
+{% block content %}
+<div class="text-center" 
+     x-data="{}" 
+     x-transition:enter="transition ease-out duration-700 transform"
+     x-transition:enter-start="opacity-0 translate-y-10"
+     x-transition:enter-end="opacity-100 translate-y-0">
+     
+    <!-- Hero Section -->
+    <h1 class="text-5xl md:text-7xl font-extrabold text-white leading-tight">
+        Never Miss a Deadline
+        <br>
+        <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+            From WhatsApp Again.
+        </span>
+    </h1>
+    <p class="mt-6 text-lg md:text-xl text-gray-300 max-w-2xl mx-auto">
+        Forward any message. Our AI parses it. We sync it.
+        Instantly add tasks, meetings, and deadlines to your calendar and Notion just by forwarding a text.
+    </p>
+    <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+        <a href="/register"
+           class="inline-block py-3 px-8 text-lg font-semibold text-white bg-blue-600 rounded-lg shadow-lg hover:bg-blue-700 transition transform hover:-translate-y-0.5 hover:scale-105 duration-300">
+            Get Started for Free
+        </a>
+        <a href="/login"
+           class="inline-block py-3 px-8 text-lg font-semibold text-white bg-gray-700/70 rounded-lg shadow-lg hover:bg-gray-600/70 border border-gray-600 transition transform hover:-translate-y-0.5 duration-300">
+            Sign In
+        </a>
+    </div>
+
+    <!-- Feature Bento Box -->
+    <div class="mt-24 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <div class="glass-card p-6 md:col-span-1 transform transition-all duration-300 hover:scale-105 hover:border-blue-400">
+            <svg class="w-10 h-10 mb-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17.25l.038-.038A5.25 5.25 0 0115.75 10.5h.001c.01.01.015.022.022.033A5.25 5.25 0 0121 15.75v.001c.01.01.022.015.033.022A5.25 5.25 0 0115.75 21h-.001c-.01-.01-.022-.015-.033-.022A5.25 5.25 0 0110.5 15.75v-.001c-.01-.01-.015-.022-.022-.033A5.25 5.25 0 0110.5 10.5h.001c.01.01.015.022.022.033A5.25 5.25 0 0115.75 10.5v.001c.01.01.022.015.033.022A5.25 5.25 0 0115.75 21h-.001c-.01-.01-.022-.015-.033-.022A5.25 5.25 0 0110.5 15.75v-.001c-.01-.01-.015-.022-.022-.033A5.25 5.25 0 013 15.75v-.001c.01-.01.022-.015.033-.022A5.25 5.25 0 018.25 10.5h.001c.01.01.015.022.022.033A5.25 5.25 0 0113.5 15.75v.001c.01.01.022.015.033.022A5.25 5.25 0 018.25 21h-.001c-.01-.01-.022-.015-.033-.022A5.25 5.25 0 013 15.75v-.001z"></path></svg>
+            <h3 class="text-xl font-semibold text-white">AI-Powered Parsing</h3>
+            <p class="mt-2 text-gray-400">Our Gemini-powered AI understands complex, casual messages instantly.</p>
+        </div>
+        
+        <div class="glass-card p-6 md:col-span-1 transform transition-all duration-300 hover:scale-105 hover:border-blue-400">
+            <svg class="w-10 h-10 mb-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <h3 class="text-xl font-semibold text-white">Instant Auto-Sync</h3>
+            <p class="mt-2 text-gray-400">Connects seamlessly with Google Calendar and Notion.</p>
+        </div>
+        
+        <div class="glass-card p-6 md:col-span-1 transform transition-all duration-300 hover:scale-105 hover:border-blue-400">
+            <svg class="w-10 h-10 mb-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h3 class="text-xl font-semibold text-white">Smart Reminders</h3>
+            <p class="mt-2 text-gray-400">Get a WhatsApp reminder 1 hour before your event is due.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
