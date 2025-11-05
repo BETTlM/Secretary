@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -25,12 +26,12 @@ def run_scheduler():
             for reminder in reminders:
                 try:
                     deadline_str = reminder['event_deadline_utc']
-
                     deadline_utc = datetime.fromisoformat(deadline_str.replace('Z', '+00:00'))
-                    ist_offset = timedelta(hours=5, minutes=30)
-                    deadline_ist = deadline_utc + ist_offset
 
+                    ist_tz = ZoneInfo("Asia/Kolkata")
+                    deadline_ist = deadline_utc.astimezone(ist_tz)
                     deadline_ist_str = deadline_ist.strftime('%Y-%m-%d %H:%M')
+                    
                     message = (
                         f"🔔 *REMINDER* 🔔\n\n"
                         f"This is a 1-hour reminder for your event:\n\n"
